@@ -161,7 +161,7 @@ public class Codegen extends VisitorAdapter{
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
 		for ( util.List<MethodDecl> l = n.methodList; l != null; l=l.tail) {
-			l.head.name.s = "m_"+n.name + "_"+l.head.name.s;
+			l.head.name.s = getMethodHash(n.name.s, l.head.name.s);
 			l.head.accept(this);
 		}
 		return null;
