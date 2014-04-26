@@ -18,9 +18,9 @@ public  class LlvmBranch extends LlvmInstruction{
 
     public String toString(){
 		//verify if the variable label is NULL or not and return the correct value
-    	if (label == null){
-			return "br label" + label;
+    	if (label != null){
+			return "br label %" + label;
 		}
-		else return "br i1" + cond + ", label" + brTrue + ", label" + brFalse;
+		else return "br i1" + cond + ", label %" + brTrue + ", label %" + brFalse;
     }
 }

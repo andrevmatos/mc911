@@ -35,6 +35,7 @@ como guia no desenvolvimento deste projeto.
 ****************************************************/
 package llvm;
 
+
 import semant.Env;
 import syntaxtree.*;
 import llvmast.*;
@@ -132,12 +133,14 @@ public class Codegen extends VisitorAdapter{
 		List<LlvmValue> offsets = new LinkedList<LlvmValue>();
 		offsets.add(new LlvmIntegerLiteral(0));
 		offsets.add(new LlvmIntegerLiteral(0));
-		assembler.add(new LlvmGetElementPointer(lhs,src,offsets));
-		
+		List<LlvmType> pts = new LinkedList<LlvmType>();
+		pts.add(new LlvmPointer(LlvmPrimitiveType.I8));
 		List<LlvmValue> args = new LinkedList<LlvmValue>();
 		args.add(lhs);
 		args.add(v);
-		List<LlvmType> pts = new LinkedList<LlvmType>();
+		assembler.add(new LlvmGetElementPointer(lhs,src,offsets));
+
+		pts = new LinkedList<LlvmType>();
 		pts.add(new LlvmPointer(LlvmPrimitiveType.I8));
 		pts.add(LlvmPrimitiveType.DOTDOTDOT);
 		
@@ -165,7 +168,13 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(BooleanType n){return null;}
 	public LlvmValue visit(IntegerType n){return null;}
 	public LlvmValue visit(IdentifierType n){return null;}
-	public LlvmValue visit(Block n){return null;}
+	public LlvmValue visit(Block n){
+		//for iterando sobre todos os elementos da lista de statements
+		for ( util.List<Statement> l = n.body; l != null; l=l.tail){
+			l.head.accept(this);
+		}
+		return null;	
+	}
 	public LlvmValue visit(If n){
 		LlvmValue cond = n.condition.accept(this);
 		LlvmLabelValue brTrue = new LlvmLabelValue("estTrue");
@@ -182,16 +191,20 @@ public class Codegen extends VisitorAdapter{
 		return null;
 	}
 	public LlvmValue visit(While n){
-		LlvmLabelValue brTrue = new LlvmLabelValue("estTrue");
-		LlvmLabelValue brFalse = new LlvmLabelValue("estFalse");
 		LlvmValue cond = n.condition.accept(this);
-		//verifica se o while acabou
-		assembler.add(new LlvmBranch(cond,  brTrue,  brFalse));
-		//assembler.add(new LlvmBranch(branch));
-		//assembler.add(new LlvmLabel(branch));
-
+		LlvmLabelValue brIn = new LlvmLabelValue("loopWhile");
+		LlvmLabelValue brOut = new LlvmLabelValue("outLoop");
+		//verifica se é true, se for true, vai para dentro do while
+		assembler.add(new LlvmBranch(cond,  brIn,  brOut));
 		
+		//inicio do "loop while"
+		assembler.add(new LlvmLabel(brIn));
+		n.body.accept(this);
+		//verifica de novo, para ver se vai sair do loop
+		assembler.add(new LlvmBranch(cond,  brIn,  brOut));
 		
+		//label apos o loop
+		assembler.add(new LlvmLabel(brOut));
 		return null;
 	}
 	public LlvmValue visit(Assign n){return null;}
@@ -241,9 +254,14 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(NewArray n){return null;}
 	public LlvmValue visit(NewObject n){return null;}
 	public LlvmValue visit(Not n){
+		//carrega o valor da variavel em v1
 		LlvmValue v1 = n.exp.accept(this);
+		//cria um objeto integerLiteral para colocar o valor 1 nele
+		LlvmIntegerLiteral v2 = new LlvmIntegerLiteral(1);
+		//cria um objeto register para colocar o valor resultado nele
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
-		//assembler.add(new LlvmTimes(lhs,LlvmPrimitiveType.I32,v1,v2));
+		//soma 1 no bit para inverte-lo
+		assembler.add(new LlvmPlus(lhs,LlvmPrimitiveType.I1,v2,v1));
 		return lhs;
 	}
 	public LlvmValue visit(Identifier n){return null;}
