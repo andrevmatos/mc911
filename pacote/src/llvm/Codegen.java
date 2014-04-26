@@ -210,27 +210,11 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(Assign n){return null;}
 	public LlvmValue visit(ArrayAssign n){return null;}
 	public LlvmValue visit(And n){
-	//carrega o valor da variavel em v1
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I1);
-		LlvmValue exp1 = n.lhs.accept(this);
-		LlvmValue exp2 = n.rhs.accept(this);
-		
-		
-		
-		//carrega o valor da expressao em v1
-				LlvmValue v1 = n.exp.accept(this);
-				//cria um objeto integerLiteral para colocar o valor 1 nele
-				LlvmIntegerLiteral v2 = new LlvmIntegerLiteral(1);
-				//cria um objeto register para colocar o valor resultado nele
-				LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I1);
-				//soma 1 no bit para inverte-lo
-				assembler.add(new LlvmPlus(lhs,LlvmPrimitiveType.I1,v2,v1));
-				return lhs;
-		
-		
-
-		return lhs;
-	
+		LlvmValue v1 = n.lhs.accept(this);
+		LlvmValue v2 = n.rhs.accept(this);
+		assembler.add(new LlvmAnd(lhs,LlvmPrimitiveType.I1,v1,v2));
+		return lhs;	
 	}
 	public LlvmValue visit(LessThan n){
 		LlvmValue op1 = n.rhs.accept(this);
@@ -264,7 +248,9 @@ public class Codegen extends VisitorAdapter{
 	}
 	public LlvmValue visit(ArrayLookup n){return null;}
 	public LlvmValue visit(ArrayLength n){return null;}
-	public LlvmValue visit(Call n){return null;}
+	public LlvmValue visit(Call n){
+		
+	}
 	public LlvmValue visit(True n){
 		return new LlvmBool(1);
 	}
