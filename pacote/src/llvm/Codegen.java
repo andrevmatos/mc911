@@ -258,7 +258,18 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLookup n){return null;}
 	public LlvmValue visit(ArrayLength n){return null;}
 	public LlvmValue visit(Call n){
-		return null;
+		LinkedList<LlvmValue> valueList = new LinkedList<>();
+		LinkedList<LlvmType> typeList = new LinkedList<>();
+		String fnName = getMethodHash(n.object.toString(), n.method.toString());		
+		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmType type = (LlvmType)n.type.accept(this);	
+		for ( util.List<Exp> valuesList = n.actuals; valuesList != null; valuesList = valuesList.tail){
+			valueList.add(valuesList.head.accept(this));
+			typeList.add(valueList.getLast().type);
+		}
+		assembler.add(new LlvmCall(lhs, type, typeList, fnName, valueList));
+		return type;
+		
 	}
 	public LlvmValue visit(True n){
 		return new LlvmBool(1);
@@ -283,6 +294,10 @@ public class Codegen extends VisitorAdapter{
 		assembler.add(new LlvmPlus(lhs,LlvmPrimitiveType.I1,v2,v1));
 		return lhs;
 	}
+	public String getMethodHash(String className, String MethodName){
+		return "m_" + className + "_" + MethodName;
+	}
+	
 	public LlvmValue visit(Identifier n){return null;}
 }
 
