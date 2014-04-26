@@ -11,7 +11,8 @@ class TestClass
 {
 	public int test(boolean b)
 	{
-		int asdf;
-		return 0;
+		int myvar;
+		myvar = 2*3;
+		return myvar;
 	}
 }

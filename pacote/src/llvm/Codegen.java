@@ -167,13 +167,20 @@ public class Codegen extends VisitorAdapter{
 		return null;
 	}
 	public LlvmValue visit(ClassDeclExtends n){return null;}
-	public LlvmValue visit(VarDecl n){ return null; }
+	public LlvmValue visit(VarDecl n){
+		LlvmRegister reg = new LlvmRegister("%"+n.name.s+"_addr", (LlvmType)n.type.accept(this));
+		LlvmAlloca al = new LlvmAlloca(reg, reg.type, new LinkedList<LlvmValue>());
+		assembler.add(al);
+		return null;
+	}
 	public LlvmValue visit(MethodDecl n){
-		System.out.println("# "+n.toString());
 		LinkedList<LlvmValue> args = new LinkedList<LlvmValue>();
 		for ( util.List<Formal> l = n.formals; l != null; l=l.tail)
 			args.add(l.head.accept(this));
 		assembler.add(new LlvmDefine("@"+n.name.s, (LlvmType)n.returnType.accept(this), args));
+		
+		for ( util.List<VarDecl> l = n.locals; l != null; l=l.tail)
+			l.head.accept(this);
 		
 		for ( util.List<Statement> l = n.body; l != null; l=l.tail)
 			l.head.accept(this);
@@ -195,7 +202,9 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(IntegerType n){
 		return LlvmPrimitiveType.I32;
 	}
-	public LlvmValue visit(IdentifierType n){return null;}
+	public LlvmValue visit(IdentifierType n){
+		return new LlvmLabelValue(n.name);
+	}
 	public LlvmValue visit(Block n){
 		//for iterando sobre todos os elementos da lista de statements
 		for ( util.List<Statement> l = n.body; l != null; l=l.tail){
@@ -236,7 +245,12 @@ public class Codegen extends VisitorAdapter{
 		assembler.add(new LlvmLabel(brOut));
 		return null;
 	}
-	public LlvmValue visit(Assign n){return null;}
+	public LlvmValue visit(Assign n){
+		LlvmValue exp = n.exp.accept(this);
+		LlvmStore stor = new LlvmStore(exp, new LlvmRegister("%"+n.var.s+"_addr", new LlvmPointer(exp.type)));
+		assembler.add(stor);
+		return null;
+	}
 	public LlvmValue visit(ArrayAssign n){return null;}
 	public LlvmValue visit(And n){
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I1);
@@ -297,7 +311,12 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(False n){
 		return new LlvmBool(0);
 	}
-	public LlvmValue visit(IdentifierExp n){return null;}
+	public LlvmValue visit(IdentifierExp n){
+		LlvmRegister reg = new LlvmRegister((LlvmType)n.type.accept(this));
+		LlvmLoad load = new LlvmLoad(reg, new LlvmRegister("%"+n.name+"_addr", new LlvmPointer(reg.type)));
+		assembler.add(load);
+		return reg;
+	}
 	public LlvmValue visit(This n){return null;}
 	public LlvmValue visit(NewArray n){return null;}
 	public LlvmValue visit(NewObject n){
