@@ -201,6 +201,7 @@ public class Codegen extends VisitorAdapter{
 		assembler.add(new LlvmLabel(brIn));
 		n.body.accept(this);
 		//verifica de novo, para ver se vai sair do loop
+		cond = n.condition.accept(this);
 		assembler.add(new LlvmBranch(cond,  brIn,  brOut));
 		
 		//label apos o loop
@@ -249,7 +250,7 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLookup n){return null;}
 	public LlvmValue visit(ArrayLength n){return null;}
 	public LlvmValue visit(Call n){
-		
+		return null;
 	}
 	public LlvmValue visit(True n){
 		return new LlvmBool(1);
