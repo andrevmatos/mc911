@@ -209,6 +209,7 @@ public class Codegen extends VisitorAdapter{
 		assembler.add(new LlvmLabel(brIn));
 		n.body.accept(this);
 		//verifica de novo, para ver se vai sair do loop
+		cond = n.condition.accept(this);
 		assembler.add(new LlvmBranch(cond,  brIn,  brOut));
 		
 		//label apos o loop

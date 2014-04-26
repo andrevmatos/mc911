@@ -13,7 +13,7 @@ public  class LlvmBranch extends LlvmInstruction{
     public LlvmBranch(LlvmValue cond,  LlvmLabelValue brTrue, LlvmLabelValue brFalse){
 		this.cond = cond;
 		this.brTrue = brTrue;
-		this.brFalse = brTrue;
+		this.brFalse = brFalse;
     }
 
     public String toString(){
@@ -21,6 +21,6 @@ public  class LlvmBranch extends LlvmInstruction{
     	if (label != null){
 			return "br label %" + label;
 		}
-		else return "br i1" + cond + ", label %" + brTrue + ", label %" + brFalse;
+		else return "br i1 " + cond + ", label %" + brTrue + ", label %" + brFalse;
     }
 }
