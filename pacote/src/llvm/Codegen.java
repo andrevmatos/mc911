@@ -159,10 +159,18 @@ public class Codegen extends VisitorAdapter{
 	};
 	
 	// Todos os visit's que devem ser implementados	
-	public LlvmValue visit(ClassDeclSimple n){return null;}
+	public LlvmValue visit(ClassDeclSimple n){
+		for ( util.List<MethodDecl> l = n.methodList; l != null; l=l.tail)
+			l.head.accept(this);
+		return null;
+	}
 	public LlvmValue visit(ClassDeclExtends n){return null;}
-	public LlvmValue visit(VarDecl n){return null;}
-	public LlvmValue visit(MethodDecl n){return null;}
+	public LlvmValue visit(VarDecl n){ return null; }
+	public LlvmValue visit(MethodDecl n){
+		System.out.println("# "+n.toString());
+		n.accept(this);
+		return null;
+	}
 	public LlvmValue visit(Formal n){return null;}
 	public LlvmValue visit(IntArrayType n){return null;}
 	public LlvmValue visit(BooleanType n){return null;}
@@ -214,7 +222,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmValue v1 = n.lhs.accept(this);
 		LlvmValue v2 = n.rhs.accept(this);
 		assembler.add(new LlvmAnd(lhs,LlvmPrimitiveType.I1,v1,v2));
-		return lhs;	
+		return lhs;
 	}
 	public LlvmValue visit(LessThan n){
 		LlvmValue op1 = n.rhs.accept(this);
@@ -249,7 +257,7 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLookup n){return null;}
 	public LlvmValue visit(ArrayLength n){return null;}
 	public LlvmValue visit(Call n){
-		
+		return null;
 	}
 	public LlvmValue visit(True n){
 		return new LlvmBool(1);
@@ -260,7 +268,9 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(IdentifierExp n){return null;}
 	public LlvmValue visit(This n){return null;}
 	public LlvmValue visit(NewArray n){return null;}
-	public LlvmValue visit(NewObject n){return null;}
+	public LlvmValue visit(NewObject n){
+		return null;
+	}
 	public LlvmValue visit(Not n){
 		//carrega o valor da expressao em v1
 		LlvmValue v1 = n.exp.accept(this);
