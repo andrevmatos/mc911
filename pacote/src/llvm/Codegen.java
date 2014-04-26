@@ -160,28 +160,48 @@ public class Codegen extends VisitorAdapter{
 	
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
-		for ( util.List<MethodDecl> l = n.methodList; l != null; l=l.tail)
+		for ( util.List<MethodDecl> l = n.methodList; l != null; l=l.tail) {
+			l.head.name.s = "m_"+n.name + "_"+l.head.name.s;
 			l.head.accept(this);
+		}
 		return null;
 	}
 	public LlvmValue visit(ClassDeclExtends n){return null;}
 	public LlvmValue visit(VarDecl n){ return null; }
 	public LlvmValue visit(MethodDecl n){
 		System.out.println("# "+n.toString());
-		n.accept(this);
+		LinkedList<LlvmValue> args = new LinkedList<LlvmValue>();
+		for ( util.List<Formal> l = n.formals; l != null; l=l.tail)
+			args.add(l.head.accept(this));
+		assembler.add(new LlvmDefine("@"+n.name.s, (LlvmType)n.returnType.accept(this), args));
+		
+		for ( util.List<Statement> l = n.body; l != null; l=l.tail)
+			l.head.accept(this);
+		
+		assembler.add(new LlvmRet(n.returnExp.accept(this)));
+		assembler.add(new LlvmCloseDefinition());
+		
 		return null;
 	}
-	public LlvmValue visit(Formal n){return null;}
-	public LlvmValue visit(IntArrayType n){return null;}
-	public LlvmValue visit(BooleanType n){return null;}
-	public LlvmValue visit(IntegerType n){return null;}
+	public LlvmValue visit(Formal n){
+		return new LlvmNamedValue("%"+n.name.toString(), (LlvmType)n.type.accept(this));
+	}
+	public LlvmValue visit(IntArrayType n){
+		return null;
+	}
+	public LlvmValue visit(BooleanType n){
+		return LlvmPrimitiveType.I1;
+	}
+	public LlvmValue visit(IntegerType n){
+		return LlvmPrimitiveType.I32;
+	}
 	public LlvmValue visit(IdentifierType n){return null;}
 	public LlvmValue visit(Block n){
 		//for iterando sobre todos os elementos da lista de statements
 		for ( util.List<Statement> l = n.body; l != null; l=l.tail){
 			l.head.accept(this);
 		}
-		return null;	
+		return null;
 	}
 	public LlvmValue visit(If n){
 		LlvmValue cond = n.condition.accept(this);
