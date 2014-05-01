@@ -43,6 +43,7 @@ import llvmast.*;
 import java.util.*;
 
 public class Codegen extends VisitorAdapter{
+	private Map<String, ClassNode> classes = new HashMap<String, ClassNode>();
 	private List<LlvmInstruction> assembler;
 	private Codegen codeGenerator;
 
@@ -50,6 +51,7 @@ public class Codegen extends VisitorAdapter{
 	private ClassNode classEnv; 	// Aponta para a classe atualmente em uso em symTab
 	private MethodNode methodEnv; 	// Aponta para a metodo atualmente em uso em symTab
 
+	private static int ord=0;
 
 	public Codegen(){
 		assembler = new LinkedList<LlvmInstruction>();
@@ -61,11 +63,11 @@ public class Codegen extends VisitorAdapter{
 		
 		// Preenchendo a Tabela de Símbolos
 		// Quem quiser usar 'env', apenas comente essa linha
-		// codeGenerator.symTab.FillTabSymbol(p);
+//		codeGenerator.symTab.FillTabSymbol(p);
 		
 		// Formato da String para o System.out.printlnijava "%d\n"
-		codeGenerator.assembler.add(new LlvmConstantDeclaration("@.formatting.string", "private constant [4 x i8] c\"%d\\0A\\00\""));	
-
+		codeGenerator.assembler.add(new LlvmConstantDeclaration("@.formatting.string", "private constant [4 x i8] c\"%d\\0A\\00\""));
+		
 		// NOTA: sempre que X.accept(Y), então Y.visit(X);
 		// NOTA: Logo, o comando abaixo irá chamar codeGenerator.visit(Program), linha 75
 		p.accept(codeGenerator);
@@ -160,6 +162,16 @@ public class Codegen extends VisitorAdapter{
 	
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
+		LinkedList<LlvmType> members = new LinkedList<LlvmType>();
+		for ( util.List<VarDecl> l = n.varList; l != null; l=l.tail)
+			members.add((LlvmType)l.head.type.accept(this));
+		LlvmStructure st = new LlvmStructure(members);
+		LinkedList<LlvmValue> vars = new LinkedList<LlvmValue>();
+//		for ( util.List<VarDecl> l = n.varList; l != null; l=l.tail)
+//			vars.add(l.head.accept(this));
+		classes.put(n.name.s, new ClassNode(n.name.s, st, vars));
+
+		assembler.add(0, new LlvmClass(n.name.s, st));
 		for ( util.List<MethodDecl> l = n.methodList; l != null; l=l.tail) {
 			l.head.name.s = getMethodHash(n.name.s, l.head.name.s);
 			l.head.accept(this);
@@ -203,7 +215,9 @@ public class Codegen extends VisitorAdapter{
 		return LlvmPrimitiveType.I32;
 	}
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmLabelValue(n.name);
+		System.out.println("@ "+classes.toString());
+		return classes.get(n.name);
+//		return new LlvmLabelValue(n.name);
 	}
 	public LlvmValue visit(Block n){
 		//for iterando sobre todos os elementos da lista de statements
@@ -214,9 +228,9 @@ public class Codegen extends VisitorAdapter{
 	}
 	public LlvmValue visit(If n){
 		LlvmValue cond = n.condition.accept(this);
-		LlvmLabelValue brTrue = new LlvmLabelValue("estTrue");
-		LlvmLabelValue brFalse = new LlvmLabelValue("estFalse");
-		LlvmLabelValue branchInc = new LlvmLabelValue("estInc");
+		LlvmLabelValue brTrue = new LlvmLabelValue("estTrue"+ord++);
+		LlvmLabelValue brFalse = new LlvmLabelValue("estFalse"+ord++);
+		LlvmLabelValue branchInc = new LlvmLabelValue("estInc"+ord++);
 		assembler.add(new LlvmBranch(cond,  brTrue,  brFalse));
 		assembler.add(new LlvmLabel(brTrue));
 		n.thenClause.accept(this);
@@ -229,8 +243,8 @@ public class Codegen extends VisitorAdapter{
 	}
 	public LlvmValue visit(While n){
 		LlvmValue cond = n.condition.accept(this);
-		LlvmLabelValue brIn = new LlvmLabelValue("loopWhile");
-		LlvmLabelValue brOut = new LlvmLabelValue("outLoop");
+		LlvmLabelValue brIn = new LlvmLabelValue("loopWhile"+ord++);
+		LlvmLabelValue brOut = new LlvmLabelValue("outLoop"+ord++);
 		//verifica se é true, se for true, vai para dentro do while
 		assembler.add(new LlvmBranch(cond,  brIn,  brOut));
 		
@@ -294,15 +308,17 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(Call n){
 		LinkedList<LlvmValue> valueList = new LinkedList<>();
 		LinkedList<LlvmType> typeList = new LinkedList<>();
-		String fnName = getMethodHash(n.object.toString(), n.method.toString());		
+		LlvmValue O = n.object.accept(this);
+//		System.out.println("# "+O.toString());
+		String fnName = getMethodHash(n.object.type.accept(this).toString(), n.method.toString());		
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		LlvmType type = (LlvmType)n.type.accept(this);	
 		for ( util.List<Exp> valuesList = n.actuals; valuesList != null; valuesList = valuesList.tail){
 			valueList.add(valuesList.head.accept(this));
 			typeList.add(valueList.getLast().type);
 		}
-		assembler.add(new LlvmCall(lhs, type, typeList, fnName, valueList));
-		return type;
+		assembler.add(new LlvmCall(lhs, type, typeList, "@"+fnName, valueList));
+		return lhs;
 		
 	}
 	public LlvmValue visit(True n){
@@ -320,7 +336,9 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(This n){return null;}
 	public LlvmValue visit(NewArray n){return null;}
 	public LlvmValue visit(NewObject n){
-		return null;
+		LlvmRegister reg = new LlvmRegister(LlvmPrimitiveType.I32);
+		assembler.add(new LlvmMalloc(reg, (LlvmType)n.type.accept(this), "%class."+n.className.s));
+		return reg;
 	}
 	public LlvmValue visit(Not n){
 		//carrega o valor da expressao em v1
@@ -349,41 +367,39 @@ public class Codegen extends VisitorAdapter{
 /**********************************************************************************/
 
 class SymTab extends VisitorAdapter{
-    public Map<String, ClassNode> classes;     
-    private ClassNode classEnv;    //aponta para a classe em uso
+	public Map<String, ClassNode> classes;
+	private ClassNode classEnv;    //aponta para a classe em uso
 
-    public LlvmValue FillTabSymbol(Program n){
-	n.accept(this);
-	return null;
-}
-public LlvmValue visit(Program n){
-	n.mainClass.accept(this);
+	public LlvmValue FillTabSymbol(Program n){
+		n.accept(this);
+		return null;
+	}
+	public LlvmValue visit(Program n){
+		n.mainClass.accept(this);
 
-	for (util.List<ClassDecl> c = n.classList; c != null; c = c.tail)
-		c.head.accept(this);
+		for (util.List<ClassDecl> c = n.classList; c != null; c = c.tail)
+			c.head.accept(this);
 
-	return null;
-}
+		return null;
+	}
 
-public LlvmValue visit(MainClass n){
-	classes.put(n.className.s, new ClassNode(n.className.s, null, null));
-	return null;
-}
+	public LlvmValue visit(MainClass n){
+		classes.put(n.className.s, new ClassNode(n.className.s, null, null));
+		return null;
+	}
 
-public LlvmValue visit(ClassDeclSimple n){
-	List<LlvmType> typeList = null;
-	// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)
-	
-	List<LlvmValue> varList = null;
-	// Constroi VarList com as Variáveis da Classe
+	public LlvmValue visit(ClassDeclSimple n){
+		List<LlvmType> typeList = null;
+		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)
 
-	classes.put(n.name.s, new ClassNode(n.name.s, 
-										new LlvmStructure(typeList), 
-										varList)
-      			);
-    	// Percorre n.methodList visitando cada método
-	return null;
-}
+		List<LlvmValue> varList = null;
+		// Constroi VarList com as Variáveis da Classe
+
+		classes.put(n.name.s, 
+				new ClassNode(n.name.s, new LlvmStructure(typeList), varList) );
+		// Percorre n.methodList visitando cada método
+		return null;
+	}
 
 	public LlvmValue visit(ClassDeclExtends n){return null;}
 	public LlvmValue visit(VarDecl n){return null;}
@@ -396,7 +412,13 @@ public LlvmValue visit(ClassDeclSimple n){
 }
 
 class ClassNode extends LlvmType {
+	public String nameClass;
+	public LlvmStructure classType;
+	public List<LlvmValue> varList;
 	ClassNode (String nameClass, LlvmStructure classType, List<LlvmValue> varList){
+		this.nameClass = nameClass;
+		this.classType = classType;
+		this.varList = varList;
 	}
 }
 
