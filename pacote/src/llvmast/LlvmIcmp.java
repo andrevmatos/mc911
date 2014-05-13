@@ -15,28 +15,42 @@ public  class LlvmIcmp extends LlvmInstruction{
     }
 
     public String toString(){
+    	String s = "  " + lhs + " = icmp ";
 		switch (conditionCode){
 			case 1:
-				return "  " + lhs + "= icmp eq" + type + op1 + ", " + op2;
+				s += "eq";
+				break;
 			case 2:
-				return "  " + lhs + "= icmp ne" + type + op1 + ", " + op2;
+				s += "ne";
+				break;
 			case 3:
-				return "  " + lhs + "= icmp ugt" + type + op1 + ", " + op2;
+				s += "ugt";
+				break;
 			case 4:
-				return "  " + lhs + "= icmp uge" + type + op1 + ", " + op2;
+				s += "uge";
+				break;
 			case 5:
-				return "  " + lhs + "= icmp ult" + type + op1 + ", " + op2;
+				s += "ult";
+				break;
 			case 6:
-				return "  " + lhs + "= icmp ule" + type + op1 + ", " + op2;
+				s += "ule";
+				break;
 			case 7:
-				return "  " + lhs + "= icmp sgt" + type + op1 + ", " + op2;
+				s += "sgt";
+				break;
 			case 8:
-				return "  " + lhs + "= icmp sge" + type + op1 + ", " + op2;
+				s += "sge";
+				break;
 			case 9:
-				return "  " + lhs + "= icmp slt" + type + op1 + ", " + op2;
+				s += "slt";
+				break;
 			case 10:
-				return "  " + lhs + "= icmp sle" + type + op1 + ", " + op2;
-			default: return " ";
+				s += "sle";
+				break;
+			default:
+				break;
 		}
-    }  
+		s += " " + type + " " + op1 + ", " + op2;
+		return s;
+    }
 }
